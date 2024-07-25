@@ -7,11 +7,12 @@ import (
 	"strconv"
 
 	"github.com/lovelydayss/goredis/handler"
+	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib/pool"
 	"github.com/lovelydayss/goredis/log"
 )
 
-type lineParser func(header []byte, reader *bufio.Reader) *handler.Droplet
+type lineParser func(header []byte, reader *bufio.Reader) *def.Droplet
 
 // Parser 协议命令解析器具体实现
 type Parser struct {
@@ -20,7 +21,7 @@ type Parser struct {
 }
 
 // NewParser 初始化
-func NewParser(logger log.Logger) handler.Parser {
+func NewParser(logger log.Logger) def.Parser {
 	p := Parser{
 		logger: logger,
 	}
@@ -36,9 +37,9 @@ func NewParser(logger log.Logger) handler.Parser {
 }
 
 // ParseStream 连接转换成 stream channel 形式，异步执行
-func (p *Parser) ParseStream(reader io.Reader) <-chan *handler.Droplet {
+func (p *Parser) ParseStream(reader io.Reader) <-chan *def.Droplet {
 
-	ch := make(chan *handler.Droplet)
+	ch := make(chan *def.Droplet)
 
 	pool.Submit(
 		func() {
@@ -50,14 +51,14 @@ func (p *Parser) ParseStream(reader io.Reader) <-chan *handler.Droplet {
 
 // 实际解析，每个解析器单独一个 go routine 处理
 // 协程 chan 同步
-func (p *Parser) parse(rawReader io.Reader, ch chan<- *handler.Droplet) {
+func (p *Parser) parse(rawReader io.Reader, ch chan<- *def.Droplet) {
 	reader := bufio.NewReader(rawReader)
 	for {
 
 		// 逐行读数据
 		firstLine, err := reader.ReadBytes('\n')
 		if err != nil {
-			ch <- &handler.Droplet{
+			ch <- &def.Droplet{
 				Reply: handler.NewErrReply(err.Error()),
 				Err:   err,
 			}
@@ -83,47 +84,47 @@ func (p *Parser) parse(rawReader io.Reader, ch chan<- *handler.Droplet) {
 }
 
 // 解析简单 string 类型
-func (p *Parser) parseSimpleString(header []byte, reader *bufio.Reader) *handler.Droplet {
+func (p *Parser) parseSimpleString(header []byte, reader *bufio.Reader) *def.Droplet {
 	content := header[1:]
-	return &handler.Droplet{
+	return &def.Droplet{
 		Reply: handler.NewSimpleStringReply(string(content)),
 	}
 }
 
 // 解析简单 int 类型
-func (p *Parser) parseInt(header []byte, reader *bufio.Reader) *handler.Droplet {
+func (p *Parser) parseInt(header []byte, reader *bufio.Reader) *def.Droplet {
 
 	i, err := strconv.ParseInt(string(header[1:]), 10, 64)
 	if err != nil {
-		return &handler.Droplet{
+		return &def.Droplet{
 			Err:   err,
 			Reply: handler.NewErrReply(err.Error()),
 		}
 	}
 
-	return &handler.Droplet{
+	return &def.Droplet{
 		Reply: handler.NewIntReply(i),
 	}
 }
 
 // 解析错误类型
-func (p *Parser) parseError(header []byte, reader *bufio.Reader) *handler.Droplet {
-	return &handler.Droplet{
+func (p *Parser) parseError(header []byte, reader *bufio.Reader) *def.Droplet {
+	return &def.Droplet{
 		Reply: handler.NewErrReply(string(header[1:])),
 	}
 }
 
 // 解析定长 string 类型
-func (p *Parser) parseBulk(header []byte, reader *bufio.Reader) *handler.Droplet {
+func (p *Parser) parseBulk(header []byte, reader *bufio.Reader) *def.Droplet {
 	// 解析定长 string
 	body, err := p.parseBulkBody(header, reader)
 	if err != nil {
-		return &handler.Droplet{
+		return &def.Droplet{
 			Reply: handler.NewErrReply(err.Error()),
 			Err:   err,
 		}
 	}
-	return &handler.Droplet{
+	return &def.Droplet{
 		Reply: handler.NewBulkReply(body),
 	}
 }
@@ -146,11 +147,11 @@ func (p *Parser) parseBulkBody(header []byte, reader *bufio.Reader) ([]byte, err
 }
 
 // 解析
-func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *handler.Droplet) {
+func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *def.Droplet) {
 	var _err error
 	defer func() {
 		if _err != nil {
-			droplet = &handler.Droplet{
+			droplet = &def.Droplet{
 				Reply: handler.NewErrReply(_err.Error()),
 				Err:   _err,
 			}
@@ -165,7 +166,7 @@ func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *h
 	}
 
 	if length <= 0 {
-		return &handler.Droplet{
+		return &def.Droplet{
 			Reply: handler.NewEmptyMultiBulkReply(),
 		}
 	}
@@ -195,7 +196,7 @@ func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *h
 		lines = append(lines, bulkBody)
 	}
 
-	return &handler.Droplet{
+	return &def.Droplet{
 		Reply: handler.NewMultiBulkReply(lines),
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/log"
-	"github.com/lovelydayss/goredis/server"
 )
 
 // Handler 是命令分发的具体实现
@@ -18,14 +18,14 @@ type Handler struct {
 	conns  map[net.Conn]struct{}
 	closed atomic.Bool
 
-	db        DB
-	parser    Parser
+	db        def.DB
+	parser    def.Parser
 	persister Persister
 	logger    log.Logger
 }
 
 // NewHandler 初始化
-func NewHandler(db DB, persister Persister, parser Parser, logger log.Logger) (server.Handler, error) {
+func NewHandler(db def.DB, persister Persister, parser def.Parser, logger log.Logger) (def.Handler, error) {
 	h := Handler{
 		conns:     make(map[net.Conn]struct{}),
 		persister: persister,
@@ -82,13 +82,14 @@ func (h *Handler) Handle(ctx context.Context, conn net.Conn) {
 	h.conns[conn] = struct{}{}
 	h.mu.Unlock()
 
+	// 进一步调用
 	h.handle(ctx, conn)
 }
 
 // handle 处理请求
 func (h *Handler) handle(ctx context.Context, conn io.ReadWriter) {
 
-	// 持续处理 conn 中请求指令
+	// 逐个处理 conn 中请求指令-协程并发
 	stream := h.parser.ParseStream(conn)
 
 	for {
@@ -108,7 +109,7 @@ func (h *Handler) handle(ctx context.Context, conn io.ReadWriter) {
 }
 
 // handleDroplet 处理每一笔指令
-func (h *Handler) handleDroplet(ctx context.Context, conn io.ReadWriter, droplet *Droplet) error {
+func (h *Handler) handleDroplet(ctx context.Context, conn io.ReadWriter, droplet *def.Droplet) error {
 	if droplet.Terminated() {
 		return droplet.Err
 	}
@@ -125,7 +126,7 @@ func (h *Handler) handleDroplet(ctx context.Context, conn io.ReadWriter, droplet
 	}
 
 	// 请求参数必须为 multiBulkReply 类型
-	multiReply, ok := droplet.Reply.(MultiReply)
+	multiReply, ok := droplet.Reply.(def.MultiReply)
 	if !ok {
 		h.logger.Errorf("[handler]conn invalid request: %s", droplet.Reply.ToBytes())
 		return nil
@@ -140,6 +141,6 @@ func (h *Handler) handleDroplet(ctx context.Context, conn io.ReadWriter, droplet
 	}
 
 	// 无返回结果，返回未知错误
-	_, _ = conn.Write(UnknownErrReplyBytes)
+	_, _ = conn.Write(def.UnknownErrReplyBytes)
 	return nil
 }

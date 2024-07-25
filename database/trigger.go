@@ -6,37 +6,39 @@ import (
 	"sync"
 
 	"github.com/lovelydayss/goredis/handler"
+	def "github.com/lovelydayss/goredis/interface"
 )
 
 // DBTrigger 触发器，对解析得到 redis 命令进行封装后分发
+// DB 类型接口实例化
 type DBTrigger struct {
 	once     sync.Once
-	executor Executor // 下层执行器
+	executor def.Executor // 下层执行器
 }
 
 // NewDBTrigger 初始化
-func NewDBTrigger(executor Executor) handler.DB {
+func NewDBTrigger(executor def.Executor) def.DB {
 	return &DBTrigger{executor: executor}
 }
 
 // Do 执行实际指令转换
-func (d *DBTrigger) Do(ctx context.Context, cmdLine [][]byte) handler.Reply {
+func (d *DBTrigger) Do(ctx context.Context, cmdLine [][]byte) def.Reply {
 	if len(cmdLine) < 2 {
 		return handler.NewErrReply(fmt.Sprintf("invalid cmd line: %v", cmdLine))
 	}
 
 	// 获取格式化指令类型名称
-	cmdType := CmdType(cmdLine[0])
+	cmdType := def.CmdType(cmdLine[0])
 	if !d.executor.ValidCommand(cmdType) {
 		return handler.NewErrReply(fmt.Sprintf("unknown cmd '%s'", cmdLine[0]))
 	}
 
 	// 初始化 cmd，并投递给 executor
-	cmd := Command{
+	cmd := def.Command{
 		Ctx:      ctx,
 		Cmd:      cmdType,
 		Args:     cmdLine[1:],
-		Receiver: make(chan handler.Reply),
+		Receiver: make(chan def.Reply),
 	}
 
 	// 投递给到 executor

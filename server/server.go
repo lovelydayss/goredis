@@ -9,37 +9,24 @@ import (
 	"syscall"
 	"time"
 
+	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib/pool"
 	"github.com/lovelydayss/goredis/log"
 )
 
-// Handler 指令分发层结构体定义
-type Handler interface {
-
-	// 启动循环
-	Start() error
-
-	// 关闭循环
-	Close()
-
-	// 处理请求
-	Handle(ctx context.Context, conn net.Conn)
-}
-
 // Server 服务器结构体定义
-// Saerver 层实现对数据连接的处理，进而将连接
-
+// Server 层实现对数据连接的处理，进而将连接
 type Server struct {
 	runOnce  sync.Once
 	stopOnce sync.Once
 
-	handler Handler    // 指令分发层接口
-	logger  log.Logger // 日志组件
+	handler def.Handler // 指令分发层接口
+	logger  log.Logger  // 日志组件
 	stopc   chan struct{}
 }
 
 // NewServer 创建新服务器
-func NewServer(handler Handler, logger log.Logger) *Server {
+func NewServer(handler def.Handler, logger log.Logger) *Server {
 	return &Server{
 		handler: handler,
 		logger:  logger,
@@ -104,6 +91,7 @@ func (s *Server) Stop() {
 
 }
 
+// listenAndServe 监听并处理连接
 func (s *Server) listenAndServe(listener net.Listener, closec chan struct{}) {
 
 	errc := make(chan error, 1)
