@@ -6,10 +6,9 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/lovelydayss/goredis/handler"
+	"git.code.oa.com/trpc-go/trpc-go/log"
 	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib/pool"
-	"github.com/lovelydayss/goredis/log"
 )
 
 type lineParser func(header []byte, reader *bufio.Reader) *def.Droplet
@@ -17,14 +16,11 @@ type lineParser func(header []byte, reader *bufio.Reader) *def.Droplet
 // Parser 协议命令解析器具体实现
 type Parser struct {
 	lineParsers map[byte]lineParser
-	logger      log.Logger
 }
 
 // NewParser 初始化
-func NewParser(logger log.Logger) def.Parser {
-	p := Parser{
-		logger: logger,
-	}
+func NewParser() def.Parser {
+	p := &Parser{}
 	p.lineParsers = map[byte]lineParser{
 		'+': p.parseSimpleString,
 		'-': p.parseError,
@@ -33,7 +29,7 @@ func NewParser(logger log.Logger) def.Parser {
 		'*': p.parseMultiBulk,
 	}
 
-	return &p
+	return p
 }
 
 // ParseStream 连接转换成 stream channel 形式，异步执行
@@ -59,7 +55,7 @@ func (p *Parser) parse(rawReader io.Reader, ch chan<- *def.Droplet) {
 		firstLine, err := reader.ReadBytes('\n')
 		if err != nil {
 			ch <- &def.Droplet{
-				Reply: handler.NewErrReply(err.Error()),
+				Reply: def.NewErrReply(err.Error()),
 				Err:   err,
 			}
 			return
@@ -74,7 +70,7 @@ func (p *Parser) parse(rawReader io.Reader, ch chan<- *def.Droplet) {
 		firstLine = bytes.TrimSuffix(firstLine, []byte{'\r', '\n'})
 		lineParseFunc, ok := p.lineParsers[firstLine[0]]
 		if !ok {
-			p.logger.Errorf("[parser] invalid line handler: %s", firstLine[0])
+			log.Errorf("[parser] invalid line def: %s", firstLine[0])
 			continue
 		}
 
@@ -87,7 +83,7 @@ func (p *Parser) parse(rawReader io.Reader, ch chan<- *def.Droplet) {
 func (p *Parser) parseSimpleString(header []byte, reader *bufio.Reader) *def.Droplet {
 	content := header[1:]
 	return &def.Droplet{
-		Reply: handler.NewSimpleStringReply(string(content)),
+		Reply: def.NewSimpleStringReply(string(content)),
 	}
 }
 
@@ -98,19 +94,19 @@ func (p *Parser) parseInt(header []byte, reader *bufio.Reader) *def.Droplet {
 	if err != nil {
 		return &def.Droplet{
 			Err:   err,
-			Reply: handler.NewErrReply(err.Error()),
+			Reply: def.NewErrReply(err.Error()),
 		}
 	}
 
 	return &def.Droplet{
-		Reply: handler.NewIntReply(i),
+		Reply: def.NewIntReply(i),
 	}
 }
 
 // 解析错误类型
 func (p *Parser) parseError(header []byte, reader *bufio.Reader) *def.Droplet {
 	return &def.Droplet{
-		Reply: handler.NewErrReply(string(header[1:])),
+		Reply: def.NewErrReply(string(header[1:])),
 	}
 }
 
@@ -120,12 +116,12 @@ func (p *Parser) parseBulk(header []byte, reader *bufio.Reader) *def.Droplet {
 	body, err := p.parseBulkBody(header, reader)
 	if err != nil {
 		return &def.Droplet{
-			Reply: handler.NewErrReply(err.Error()),
+			Reply: def.NewErrReply(err.Error()),
 			Err:   err,
 		}
 	}
 	return &def.Droplet{
-		Reply: handler.NewBulkReply(body),
+		Reply: def.NewBulkReply(body),
 	}
 }
 
@@ -152,7 +148,7 @@ func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *d
 	defer func() {
 		if _err != nil {
 			droplet = &def.Droplet{
-				Reply: handler.NewErrReply(_err.Error()),
+				Reply: def.NewErrReply(_err.Error()),
 				Err:   _err,
 			}
 		}
@@ -167,7 +163,7 @@ func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *d
 
 	if length <= 0 {
 		return &def.Droplet{
-			Reply: handler.NewEmptyMultiBulkReply(),
+			Reply: def.NewEmptyMultiBulkReply(),
 		}
 	}
 
@@ -197,6 +193,6 @@ func (p *Parser) parseMultiBulk(header []byte, reader *bufio.Reader) (droplet *d
 	}
 
 	return &def.Droplet{
-		Reply: handler.NewMultiBulkReply(lines),
+		Reply: def.NewMultiBulkReply(lines),
 	}
 }

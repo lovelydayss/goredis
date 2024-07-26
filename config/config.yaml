@@ -1,0 +1,8 @@
+address: 127.0.0.1:6379
+
+aof:
+  is_aof: true
+  filename: ./log/aof.log
+  append_fsync: always # always everysec no
+  is_rewrite: true
+  aof_rewrite_interval: 100

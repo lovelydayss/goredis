@@ -9,9 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	log "git.code.oa.com/trpc-go/trpc-go/log"
+	"github.com/lovelydayss/goredis/config"
 	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib/pool"
-	"github.com/lovelydayss/goredis/log"
 )
 
 // Server 服务器结构体定义
@@ -21,15 +22,13 @@ type Server struct {
 	stopOnce sync.Once
 
 	handler def.Handler // 指令分发层接口
-	logger  log.Logger  // 日志组件
 	stopc   chan struct{}
 }
 
 // NewServer 创建新服务器
-func NewServer(handler def.Handler, logger log.Logger) *Server {
+func NewServer(handler def.Handler) *Server {
 	return &Server{
 		handler: handler,
-		logger:  logger,
 		stopc:   make(chan struct{}),
 	}
 }
@@ -78,7 +77,12 @@ func (s *Server) Serve(address string) (err error) {
 	})
 
 	return nil
+}
 
+// Run 运行服务器
+func (s *Server) Run() (err error) {
+
+	return s.Serve(config.Config.Address)
 }
 
 // Stop 结束服务器循环
@@ -88,7 +92,6 @@ func (s *Server) Stop() {
 	s.stopOnce.Do(func() {
 		close(s.stopc)
 	})
-
 }
 
 // listenAndServe 监听并处理连接
@@ -103,19 +106,19 @@ func (s *Server) listenAndServe(listener net.Listener, closec chan struct{}) {
 		func() {
 			select {
 			case <-closec:
-				s.logger.Errorf("[server]server closing...")
+				log.Errorf("[server]server closing...")
 			case err := <-errc:
-				s.logger.Errorf("[server]server err: %s", err.Error())
+				log.Errorf("[server]server err: %s", err.Error())
 			}
 			cancel()
-			s.logger.Warnf("[server]server closeing...")
+			log.Warnf("[server]server closeing...")
 			s.handler.Close()
 			if err := listener.Close(); err != nil {
-				s.logger.Errorf("[server]server close listener err: %s", err.Error())
+				log.Errorf("[server]server close listener err: %s", err.Error())
 			}
 		})
 
-	s.logger.Warnf("[server]server starting...")
+	log.Warnf("[server]server starting...")
 	var wg sync.WaitGroup
 
 	// 处理连接

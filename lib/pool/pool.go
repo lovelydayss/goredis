@@ -4,26 +4,25 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/lovelydayss/goredis/log"
-
+	"git.code.oa.com/trpc-go/trpc-go/log"
 	"github.com/panjf2000/ants"
 )
 
-var pool *ants.Pool
+var pool = &ants.Pool{}
+var err error
 
 func init() {
-	pool_, err := ants.NewPool(5000, ants.WithPanicHandler(
+	pool, err = ants.NewPool(5000, ants.WithPanicHandler(
 		func(i interface{}) {
 			stackInfo := strings.Replace(string(debug.Stack()), "\n", "", -1)
-			log.GetDefaultLogger().Errorf("recover info: %v, stack info: %s", i, stackInfo)
+			log.Errorf("recover info: %v, stack info: %s", i, stackInfo)
 		}))
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-
-	pool = pool_
 }
 
+// Submit 提交任务
 func Submit(task func()) {
 	pool.Submit(task)
 }

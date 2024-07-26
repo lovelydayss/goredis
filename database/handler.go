@@ -1,4 +1,4 @@
-package handler
+package database
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"git.code.oa.com/trpc-go/trpc-go/log"
 	def "github.com/lovelydayss/goredis/interface"
-	"github.com/lovelydayss/goredis/log"
 )
 
 // Handler 是命令分发的具体实现
@@ -20,16 +20,14 @@ type Handler struct {
 
 	db        def.DB
 	parser    def.Parser
-	persister Persister
-	logger    log.Logger
+	persister def.Persister
 }
 
 // NewHandler 初始化
-func NewHandler(db def.DB, persister Persister, parser def.Parser, logger log.Logger) (def.Handler, error) {
+func NewHandler(db def.DB, persister def.Persister, parser def.Parser) (def.Handler, error) {
 	h := Handler{
 		conns:     make(map[net.Conn]struct{}),
 		persister: persister,
-		logger:    logger,
 		db:        db,
 		parser:    parser,
 	}
@@ -47,20 +45,20 @@ func (h *Handler) Start() error {
 	defer reloader.Close()
 
 	// 读取持久化文件，还原数据库
-	h.handle(SetLoadingPattern(context.Background()), newFakeReaderWriter(reloader))
+	h.handle(def.SetLoadingPattern(context.Background()), def.NewFakeReaderWriter(reloader))
 	return nil
 }
 
 // Close 关闭指令分发层
 func (h *Handler) Close() {
 	h.Once.Do(func() {
-		h.logger.Warnf("[handler]handler closing...")
+		log.Warnf("[handler]handler closing...")
 		h.closed.Store(true)
 		h.mu.RLock()
 		defer h.mu.RUnlock()
 		for conn := range h.conns {
 			if err := conn.Close(); err != nil {
-				h.logger.Errorf("[handler]close conn err, local addr: %s, err: %s", conn.LocalAddr().String(), err.Error())
+				log.Errorf("[handler]close conn err, local addr: %s, err: %s", conn.LocalAddr().String(), err.Error())
 			}
 		}
 		h.conns = nil
@@ -95,13 +93,13 @@ func (h *Handler) handle(ctx context.Context, conn io.ReadWriter) {
 	for {
 		select {
 		case <-ctx.Done():
-			h.logger.Warnf("[handler]handle ctx err: %s", ctx.Err().Error())
+			log.Warnf("[handler]handle ctx err: %s", ctx.Err().Error())
 			return
 
 		// chan 解耦，有指令到达对指令处理
 		case droplet := <-stream:
 			if err := h.handleDroplet(ctx, conn, droplet); err != nil {
-				h.logger.Errorf("[handler]conn terminated, err: %s", droplet.Err.Error())
+				log.Errorf("[handler]conn terminated, err: %s", droplet.Err.Error())
 				return
 			}
 		}
@@ -116,19 +114,19 @@ func (h *Handler) handleDroplet(ctx context.Context, conn io.ReadWriter, droplet
 
 	if droplet.Err != nil {
 		_, _ = conn.Write(droplet.Reply.ToBytes())
-		h.logger.Errorf("[handler]conn request, err: %s", droplet.Err.Error())
+		log.Errorf("[handler]conn request, err: %s", droplet.Err.Error())
 		return nil
 	}
 
 	if droplet.Reply == nil {
-		h.logger.Errorf("[handler]conn empty request")
+		log.Errorf("[handler]conn empty request")
 		return nil
 	}
 
 	// 请求参数必须为 multiBulkReply 类型
 	multiReply, ok := droplet.Reply.(def.MultiReply)
 	if !ok {
-		h.logger.Errorf("[handler]conn invalid request: %s", droplet.Reply.ToBytes())
+		log.Errorf("[handler]conn invalid request: %s", droplet.Reply.ToBytes())
 		return nil
 	}
 

@@ -56,6 +56,11 @@ type Command struct {
 	Receiver chan Reply
 }
 
+// GetCmd 获取指令
+func (c *Command) GetCmd() [][]byte {
+	return append([][]byte{[]byte(c.Cmd.String())}, c.Args...)
+}
+
 // CmdAdapter 指令执行适配器接口
 type CmdAdapter interface {
 	ToCmd() [][]byte

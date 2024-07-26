@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lovelydayss/goredis/handler"
 	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib/pool"
 )
@@ -103,7 +102,7 @@ func (e *DBExecutor) run() {
 			// 调用对应 cmdHandlers 函数进行指令处理， 获取返回消息
 			cmdFunc, ok := e.cmdHandlers[cmd.Cmd]
 			if !ok {
-				cmd.Receiver <- handler.NewErrReply(fmt.Sprintf("unknown command '%s'", cmd.Cmd))
+				cmd.Receiver <- def.NewErrReply(fmt.Sprintf("unknown command '%s'", cmd.Cmd))
 				continue
 			}
 

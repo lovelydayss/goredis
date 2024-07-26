@@ -5,17 +5,6 @@ import (
 	"strings"
 )
 
-var UnknownErrReplyBytes = []byte("-ERR unknown\r\n")
-
-type Reply interface {
-	ToBytes() []byte
-}
-
-type MultiReply interface {
-	Reply
-	Args() [][]byte
-}
-
 type Droplet struct {
 	Reply Reply
 	Err   error

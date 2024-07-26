@@ -1,4 +1,4 @@
-package handler
+package def
 
 import (
 	"strconv"
@@ -7,6 +7,17 @@ import (
 
 // CRLF 是 redis 统一的行分隔符协议
 const CRLF = "\r\n"
+
+var UnknownErrReplyBytes = []byte("-ERR unknown\r\n")
+
+type Reply interface {
+	ToBytes() []byte
+}
+
+type MultiReply interface {
+	Reply
+	Args() [][]byte
+}
 
 type OKReply struct{}
 

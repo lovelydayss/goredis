@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lovelydayss/goredis/handler"
 	def "github.com/lovelydayss/goredis/interface"
 )
 
@@ -24,13 +23,13 @@ func NewDBTrigger(executor def.Executor) def.DB {
 // Do 执行实际指令转换
 func (d *DBTrigger) Do(ctx context.Context, cmdLine [][]byte) def.Reply {
 	if len(cmdLine) < 2 {
-		return handler.NewErrReply(fmt.Sprintf("invalid cmd line: %v", cmdLine))
+		return def.NewErrReply(fmt.Sprintf("invalid cmd line: %v", cmdLine))
 	}
 
 	// 获取格式化指令类型名称
 	cmdType := def.CmdType(cmdLine[0])
 	if !d.executor.ValidCommand(cmdType) {
-		return handler.NewErrReply(fmt.Sprintf("unknown cmd '%s'", cmdLine[0]))
+		return def.NewErrReply(fmt.Sprintf("unknown cmd '%s'", cmdLine[0]))
 	}
 
 	// 初始化 cmd，并投递给 executor
@@ -41,7 +40,7 @@ func (d *DBTrigger) Do(ctx context.Context, cmdLine [][]byte) def.Reply {
 		Receiver: make(chan def.Reply),
 	}
 
-	// 投递给到 executor
+	// 投递给到 executor，实现从多连接并发到单个协程依次处理请求
 	d.executor.Entrance() <- &cmd
 
 	// 监听 chan，直到接收到返回的 reply
