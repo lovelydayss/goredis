@@ -55,4 +55,9 @@ type DataStore interface {
 	ZAdd(*Command) Reply
 	ZRangeByScore(*Command) Reply
 	ZRem(*Command) Reply
+
+	// bitmap
+	SetBit(*Command) Reply
+	GetBit(*Command) Reply
+	BitCount(*Command) Reply
 }

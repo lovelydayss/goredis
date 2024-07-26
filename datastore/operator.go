@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	mbitmap "github.com/lovelydayss/goredis/datastruct/bitmap"
 	mhash "github.com/lovelydayss/goredis/datastruct/hash"
 	mlist "github.com/lovelydayss/goredis/datastruct/list"
 	mset "github.com/lovelydayss/goredis/datastruct/set"
@@ -104,4 +105,23 @@ func (k *KVStore) getAsSortedSet(key string) (msortedset.SortedSet, error) {
 
 func (k *KVStore) putAsSortedSet(key string, zset msortedset.SortedSet) {
 	k.data[key] = zset
+}
+
+func (k *KVStore) getAsBitmap(key string) (mbitmap.BitMap, error) {
+	v, ok := k.data[key]
+	if !ok {
+		return nil, nil
+	}
+
+	bmap, ok := v.(mbitmap.BitMap)
+	if !ok {
+		return nil, def.NewWrongTypeErrReply()
+	}
+
+	return bmap, nil
+
+}
+
+func (k *KVStore) putAsBitmap(key string, bmap mbitmap.BitMap) {
+	k.data[key] = bmap
 }

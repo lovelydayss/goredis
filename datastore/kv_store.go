@@ -37,6 +37,7 @@ func NewKVStore(persister def.Persister) def.DataStore {
 	}
 }
 
+// ForEach 遍历 KVStore
 func (k *KVStore) ForEach(f func(key string, adapter def.CmdAdapter, expireAt *time.Time)) {
 	for key, data := range k.data {
 		expiredAt, ok := k.expiredAt[key]
@@ -52,7 +53,7 @@ func (k *KVStore) ForEach(f func(key string, adapter def.CmdAdapter, expireAt *t
 	}
 }
 
-// string
+// Get String 类型 Get 实现
 func (k *KVStore) Get(cmd *def.Command) def.Reply {
 	args := cmd.Args
 	key := string(args[0])
@@ -558,4 +559,50 @@ func (k *KVStore) ZRem(cmd *def.Command) def.Reply {
 		k.persister.PersistCmd(cmd.Ctx, cmd.GetCmd()) // 持久化
 	}
 	return def.NewIntReply(remed)
+}
+
+func (k *KVStore) SetBit(cmd *def.Command) def.Reply {
+
+	return nil
+}
+func (k *KVStore) GetBit(cmd *def.Command) def.Reply {
+
+	args := cmd.Args
+	key := string(args[0])
+	if len(args) != 2 {
+		return def.NewSyntaxErrReply()
+	}
+
+	offset, err := strconv.ParseInt(string(args[1]), 10, 64)
+	if err != nil {
+		return def.NewSyntaxErrReply()
+	}
+
+	v, err := k.getAsBitmap(key)
+	if err != nil {
+		return def.NewErrReply(err.Error())
+	}
+	if v == nil {
+		return def.NewNillReply()
+	}
+
+	return def.NewBulkReply(v.GetBit(offset))
+}
+func (k *KVStore) BitCount(cmd *def.Command) def.Reply {
+
+	args := cmd.Args
+	key := string(args[0])
+	if len(args) != 1 {
+		return def.NewSyntaxErrReply()
+	}
+
+	v, err := k.getAsBitmap(key)
+	if err != nil {
+		return def.NewErrReply(err.Error())
+	}
+	if v == nil {
+		return def.NewNillReply()
+	}
+
+	return def.NewBulkReply(v.Count())
 }

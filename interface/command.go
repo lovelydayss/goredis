@@ -38,6 +38,11 @@ const (
 	CmdTypeZAdd          CmdType = "zadd"
 	CmdTypeZRangeByScore CmdType = "zrangebyscore"
 	CmdTypeZRem          CmdType = "zrem"
+
+	// bitmap
+	CmdTypeBitmapGet   CmdType = "getbit"
+	CmdTypeBitmapSet   CmdType = "setbit"
+	CmdTypeBitmapCount CmdType = "bitcount"
 )
 
 // CmdType 指令类型
