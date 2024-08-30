@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/lovelydayss/goredis/database"
 	"github.com/lovelydayss/goredis/datastore"
+	"github.com/lovelydayss/goredis/handler"
 	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/lib"
 	"github.com/lovelydayss/goredis/parser"
@@ -79,9 +79,9 @@ func (a *aofPersister) forkDB(fileSize int64) (def.DataStore, error) {
 	reloader := readCloserAdapter(io.LimitReader(file, fileSize), file.Close)
 	fakePerisister := newFakePersister(reloader)
 	tmpKVStore := datastore.NewKVStore(fakePerisister)
-	executor := database.NewDBExecutor(tmpKVStore)
-	trigger := database.NewDBTrigger(executor)
-	h, err := database.NewHandler(trigger, fakePerisister, parser.NewParser())
+	executor := datastore.NewDBExecutor(tmpKVStore)
+	trigger := handler.NewDBTrigger(executor)
+	h, err := handler.NewHandler(trigger, fakePerisister, parser.NewParser())
 	if err != nil {
 		return nil, err
 	}

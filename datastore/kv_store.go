@@ -565,6 +565,7 @@ func (k *KVStore) SetBit(cmd *def.Command) def.Reply {
 
 	return nil
 }
+
 func (k *KVStore) GetBit(cmd *def.Command) def.Reply {
 
 	args := cmd.Args
@@ -588,6 +589,7 @@ func (k *KVStore) GetBit(cmd *def.Command) def.Reply {
 
 	return def.NewBulkReply(v.GetBit(offset))
 }
+
 func (k *KVStore) BitCount(cmd *def.Command) def.Reply {
 
 	args := cmd.Args

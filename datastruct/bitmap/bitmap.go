@@ -46,8 +46,10 @@ func (b *BitMapEntity) grow(bitSize int64) {
 	b.data = append(b.data, make([]byte, gap)...)
 }
 
-// Count 位图中的位数
+// Count 位图中 1 的位数
 func (b *BitMapEntity) Count() []byte {
+
+	// todo
 	return []byte(strconv.FormatInt(int64(len(b.data)*8), 10))
 }
 

@@ -119,7 +119,6 @@ func (k *KVStore) getAsBitmap(key string) (mbitmap.BitMap, error) {
 	}
 
 	return bmap, nil
-
 }
 
 func (k *KVStore) putAsBitmap(key string, bmap mbitmap.BitMap) {

@@ -82,7 +82,7 @@ func (s *Server) Serve(address string) (err error) {
 // Run 运行服务器
 func (s *Server) Run() (err error) {
 
-	return s.Serve(config.Config.Address)
+	return s.Serve(config.Config.Server.Address)
 }
 
 // Stop 结束服务器循环

@@ -1,8 +1,25 @@
-address: 127.0.0.1:6379
+server:
+  address: 127.0.0.1:6379
 
 aof:
-  is_aof: true
+  is_enable: true
   filename: ./log/aof.log
   append_fsync: always # always everysec no
   is_rewrite: true
   aof_rewrite_interval: 100
+
+cluster:
+  is_enable: false
+  # hash_slot: 16384
+
+  partition_num: 3
+  partition_map:
+    - [0, 6000]
+    - [6001, 12000]
+    - [12001, 16384]
+
+  raft_node_nums: 3
+  raft_node_address:
+    - [127.0.0.1:9000, 127.0.0.1:9001, 127.0.0.1:9002]
+    - [127.0.0.1:9003, 127.0.0.1:9004, 127.0.0.1:9005]
+    - [127.0.0.1:9006, 127.0.0.1:9007, 127.0.0.1:9008]

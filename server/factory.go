@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/lovelydayss/goredis/database"
 	"github.com/lovelydayss/goredis/datastore"
+	"github.com/lovelydayss/goredis/handler"
 	def "github.com/lovelydayss/goredis/interface"
 	"github.com/lovelydayss/goredis/parser"
 	"github.com/lovelydayss/goredis/persist"
@@ -23,9 +23,9 @@ func init() {
 	// 存储介质
 	_ = container.Provide(datastore.NewKVStore)
 	// 执行器
-	_ = container.Provide(database.NewDBExecutor)
+	_ = container.Provide(datastore.NewDBExecutor)
 	// 触发器
-	_ = container.Provide(database.NewDBTrigger)
+	_ = container.Provide(handler.NewDBTrigger)
 
 	/**
 	   逻辑处理层
@@ -33,7 +33,7 @@ func init() {
 	// 协议解析
 	_ = container.Provide(parser.NewParser)
 	// 指令处理
-	_ = container.Provide(database.NewHandler)
+	_ = container.Provide(handler.NewHandler)
 
 	/**
 	   服务端
